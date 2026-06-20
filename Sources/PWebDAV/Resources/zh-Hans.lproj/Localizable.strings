@@ -87,6 +87,7 @@
 "tab.accounts" = "账号";
 "tab.general" = "常规";
 "tab.logs" = "日志";
+"tab.network" = "网络";
 "tab.shares" = "分享目录";
 
 "web.modified" = "修改时间";

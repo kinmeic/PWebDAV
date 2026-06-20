@@ -49,8 +49,8 @@ GitHub Actions builds release artifacts for both Apple Silicon and Intel Macs:
 Push a version tag to publish a GitHub Release:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 The release workflow can also be started manually from the Actions tab with a release tag.

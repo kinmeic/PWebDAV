@@ -87,6 +87,7 @@
 "tab.accounts" = "Accounts";
 "tab.general" = "General";
 "tab.logs" = "Logs";
+"tab.network" = "Network";
 "tab.shares" = "Shared Directories";
 
 "web.modified" = "Modified";

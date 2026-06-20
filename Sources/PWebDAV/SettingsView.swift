@@ -12,7 +12,7 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 440)
+            .frame(width: 540)
             .padding()
 
             Divider()
@@ -21,6 +21,8 @@ struct SettingsView: View {
                 switch selectedTab {
                 case .general:
                     GeneralSettingsView(model: model)
+                case .network:
+                    NetworkSettingsView(model: model)
                 case .shares:
                     ShareSettingsView(model: model)
                 case .accounts:
@@ -38,6 +40,7 @@ struct SettingsView: View {
 
 private enum SettingsTab: String, CaseIterable, Identifiable {
     case general
+    case network
     case shares
     case accounts
     case logs
@@ -48,6 +51,8 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general:
             return L.str("tab.general")
+        case .network:
+            return L.str("tab.network")
         case .shares:
             return L.str("tab.shares")
         case .accounts:
@@ -63,73 +68,6 @@ private struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section(L.str("section.port")) {
-                LabeledContent(L.str("label.httpPort")) {
-                    TextField("", value: $model.settings.port, formatter: NumberFormatter.integer)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 90)
-                        .onSubmit { model.saveSettings() }
-                }
-
-                LabeledContent(L.str("label.bindAddress")) {
-                    Picker("", selection: $model.settings.bindAddress) {
-                        Text(L.str("bind.allInterfaces")).tag("0.0.0.0")
-                        Text(L.str("bind.localOnly")).tag("127.0.0.1")
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 260)
-                    .onChange(of: model.settings.bindAddress) { _, _ in model.saveSettings() }
-                }
-
-                if model.settings.bindAddress == "0.0.0.0" {
-                    Text(L.str("warning.allInterfacesHTTP"))
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            Section(L.str("section.tls")) {
-                Toggle(L.str("label.enableTLS"), isOn: $model.settings.tlsEnabled)
-                    .onChange(of: model.settings.tlsEnabled) { _, _ in model.saveSettings() }
-
-                LabeledContent(L.str("label.tlsCertificate")) {
-                    PathPickerRow(
-                        path: $model.settings.tlsCertificatePath,
-                        pick: { model.pickTLSCertificate() }
-                    )
-                    .onChange(of: model.settings.tlsCertificatePath) { _, _ in model.saveSettings() }
-                }
-
-                LabeledContent(L.str("label.tlsPrivateKey")) {
-                    PathPickerRow(
-                        path: $model.settings.tlsPrivateKeyPath,
-                        pick: { model.pickTLSPrivateKey() }
-                    )
-                    .onChange(of: model.settings.tlsPrivateKeyPath) { _, _ in model.saveSettings() }
-                }
-
-                if model.settings.tlsEnabled &&
-                    (model.settings.tlsCertificatePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                     model.settings.tlsPrivateKeyPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                    Text(L.str("hint.tlsRequiresCertificate"))
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            Section(L.str("section.transfer")) {
-                Toggle(L.str("label.enableUploadLimit"), isOn: $model.settings.uploadLimitEnabled)
-                    .onChange(of: model.settings.uploadLimitEnabled) { _, _ in model.saveSettings() }
-
-                LabeledContent(L.str("label.uploadLimitMB")) {
-                    TextField("", value: $model.settings.uploadLimitMB, formatter: NumberFormatter.integer)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 90)
-                        .disabled(!model.settings.uploadLimitEnabled)
-                        .onSubmit { model.saveSettings() }
-                }
-            }
-
             Section(L.str("section.general")) {
                 HStack {
                     Text(L.str("label.interfaceLanguage"))
@@ -192,6 +130,84 @@ private struct GeneralSettingsView: View {
                 LabeledContent("PWebDAV") {
                     Text(model.versionText)
                         .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .onDisappear { model.saveSettings() }
+    }
+}
+
+private struct NetworkSettingsView: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        Form {
+            Section(L.str("section.port")) {
+                LabeledContent(L.str("label.httpPort")) {
+                    TextField("", value: $model.settings.port, formatter: NumberFormatter.integer)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 90)
+                        .onSubmit { model.saveSettings() }
+                }
+
+                LabeledContent(L.str("label.bindAddress")) {
+                    Picker("", selection: $model.settings.bindAddress) {
+                        Text(L.str("bind.allInterfaces")).tag("0.0.0.0")
+                        Text(L.str("bind.localOnly")).tag("127.0.0.1")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 260)
+                    .onChange(of: model.settings.bindAddress) { _, _ in model.saveSettings() }
+                }
+
+                if model.settings.bindAddress == "0.0.0.0" {
+                    Text(L.str("warning.allInterfacesHTTP"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Section(L.str("section.transfer")) {
+                Toggle(L.str("label.enableUploadLimit"), isOn: $model.settings.uploadLimitEnabled)
+                    .onChange(of: model.settings.uploadLimitEnabled) { _, _ in model.saveSettings() }
+
+                LabeledContent(L.str("label.uploadLimitMB")) {
+                    TextField("", value: $model.settings.uploadLimitMB, formatter: NumberFormatter.integer)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 90)
+                        .disabled(!model.settings.uploadLimitEnabled)
+                        .onSubmit { model.saveSettings() }
+                }
+            }
+
+            Section(L.str("section.tls")) {
+                Toggle(L.str("label.enableTLS"), isOn: $model.settings.tlsEnabled)
+                    .onChange(of: model.settings.tlsEnabled) { _, _ in model.saveSettings() }
+
+                LabeledContent(L.str("label.tlsCertificate")) {
+                    PathPickerRow(
+                        path: $model.settings.tlsCertificatePath,
+                        pick: { model.pickTLSCertificate() }
+                    )
+                    .onChange(of: model.settings.tlsCertificatePath) { _, _ in model.saveSettings() }
+                }
+
+                LabeledContent(L.str("label.tlsPrivateKey")) {
+                    PathPickerRow(
+                        path: $model.settings.tlsPrivateKeyPath,
+                        pick: { model.pickTLSPrivateKey() }
+                    )
+                    .onChange(of: model.settings.tlsPrivateKeyPath) { _, _ in model.saveSettings() }
+                }
+
+                if model.settings.tlsEnabled &&
+                    (model.settings.tlsCertificatePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                     model.settings.tlsPrivateKeyPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                    Text(L.str("hint.tlsRequiresCertificate"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
         }
