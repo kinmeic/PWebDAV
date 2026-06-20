@@ -1,0 +1,84 @@
+"action.add" = "Add";
+"action.clear" = "Clear";
+"action.delete" = "Delete";
+"action.quit" = "Quit";
+"action.restart" = "Restart";
+"action.revert" = "Revert";
+"action.save" = "Save";
+"action.settings" = "Settings";
+"action.start" = "Start";
+"action.stop" = "Stop";
+
+"account.disabled" = "Disabled";
+"account.enabled" = "Enabled";
+
+"bind.allInterfaces" = "All Interfaces";
+"bind.localOnly" = "Local Only";
+
+"empty.noAccounts" = "No Accounts";
+"empty.noShares" = "No Shared Directories";
+
+"hint.leaveBlankPassword" = "Leave blank to keep the current password.";
+"hint.noAccountsAccessDenied" = "WebDAV access is denied when no account is enabled.";
+
+"label.accessURL" = "Access URL";
+"label.autoStartServer" = "Start WebDAV service when app launches";
+"label.autoScroll" = "Auto-scroll";
+"label.bindAddress" = "Bind Address";
+"label.enabled" = "Enabled";
+"label.httpPort" = "HTTP Port";
+"label.interfaceLanguage" = "Interface Language";
+"label.localPath" = "Local Path";
+"label.newDirectoryPermission" = "New Directory Permission";
+"label.newPassword" = "New Password";
+"label.status" = "Status";
+"label.username" = "Username";
+"label.virtualName" = "Virtual Directory Name";
+
+"log.account.added" = "Added account %@";
+"log.server.started" = "WebDAV server started: %@";
+"log.server.starting" = "Starting WebDAV server on port %d";
+"log.server.stopped" = "WebDAV server stopped";
+"log.server.stopping" = "Stopping WebDAV server";
+"log.settings.saveFailed" = "Failed to save settings: %@";
+"log.share.added" = "Added shared directory /%@ -> %@";
+
+"permission.none" = "No Access";
+"permission.readOnly" = "Read Only";
+"permission.readWrite" = "Read/Write";
+
+"placeholder.searchLogs" = "Search logs...";
+
+"language.system" = "System";
+
+"section.account" = "Account";
+"section.accountPermissions" = "Account Permissions";
+"section.defaultPermission" = "Default Permission";
+"section.directory" = "Directory";
+"section.general" = "General";
+"section.port" = "Port Settings";
+"section.runtime" = "Runtime";
+"section.version" = "Version";
+
+"status.display.failed" = "Failed to start: %@";
+"status.display.running" = "Running on port %d";
+"status.display.starting" = "Starting";
+"status.display.stopped" = "Stopped";
+"status.display.stopping" = "Stopping";
+"status.menu.failed" = "Status: Error %@";
+"status.menu.running" = "Status: Running :%d";
+"status.menu.starting" = "Status: Starting";
+"status.menu.stopped" = "Status: Stopped";
+"status.menu.stopping" = "Status: Stopping";
+"status.unsavedChanges" = "Unsaved changes";
+
+"tab.accounts" = "Accounts";
+"tab.general" = "General";
+"tab.logs" = "Logs";
+"tab.shares" = "Shared Directories";
+
+"web.modified" = "Modified";
+"web.name" = "Name";
+"web.size" = "Size";
+
+"window.settings.title" = "PWebDAV Settings";
