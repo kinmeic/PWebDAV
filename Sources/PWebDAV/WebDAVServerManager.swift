@@ -5,7 +5,7 @@ import NIOPosix
 import NIOSSL
 
 enum WebDAVServerEvent {
-    case started(Int)
+    case started(httpPort: Int, httpsPort: Int?)
     case stopped
     case failed(String)
     case request(String)
@@ -15,8 +15,8 @@ final class WebDAVServerManager {
     private enum State {
         case stopped
         case starting
-        case running(Channel)
-        case stopping
+        case running([Channel])
+        case stopping([Channel])
     }
 
     private let stateQueue = DispatchQueue(label: "local.pwebdav.server.state")
@@ -40,50 +40,33 @@ final class WebDAVServerManager {
 
             do {
                 let sslContext = try Self.makeTLSContext(settings: settings)
-                let bootstrap = ServerBootstrap(group: group)
-                    .serverChannelOption(ChannelOptions.backlog, value: 256)
-                    .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-                    .childChannelInitializer { channel in
-                        let tlsFuture: EventLoopFuture<Void>
-                        if let sslContext {
-                            tlsFuture = channel.pipeline.addHandler(NIOSSLServerHandler(context: sslContext))
-                        } else {
-                            tlsFuture = channel.eventLoop.makeSucceededFuture(())
-                        }
-
-                        return tlsFuture.flatMap {
-                            channel.pipeline.configureHTTPServerPipeline()
-                        }.flatMap {
-                            channel.pipeline.addHandler(WebDAVRequestHandler(
-                                settingsProvider: settingsProvider,
-                                eventSink: eventSink,
-                                fileIO: fileIO,
-                                lockStore: self.lockStore,
-                                usesTLS: sslContext != nil
-                            ))
-                        }
-                    }
-                    .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+                let httpBootstrap = self.makeBootstrap(
+                    group: group,
+                    sslContext: nil,
+                    settingsProvider: settingsProvider,
+                    eventSink: eventSink,
+                    fileIO: fileIO
+                )
 
                 self.group = group
                 self.threadPool = threadPool
 
-                bootstrap.bind(host: settings.bindAddress, port: settings.port).whenComplete { result in
+                httpBootstrap.bind(host: settings.bindAddress, port: settings.port).whenComplete { result in
                     self.stateQueue.async {
                         switch result {
-                        case .success(let channel):
-                            if self.pendingStop {
-                                self.state = .stopping
-                                channel.close(promise: nil)
+                        case .success(let httpChannel):
+                            if let sslContext {
+                                self.bindHTTPS(
+                                    settings: settings,
+                                    settingsProvider: settingsProvider,
+                                    eventSink: eventSink,
+                                    group: group,
+                                    fileIO: fileIO,
+                                    sslContext: sslContext,
+                                    httpChannel: httpChannel
+                                )
                             } else {
-                                self.state = .running(channel)
-                                eventSink(.started(settings.port))
-                            }
-
-                            channel.closeFuture.whenComplete { _ in
-                                self.stateQueue.async {
-                                    self.finishStopped(eventSink: eventSink)
-                                }
+                                self.finishStarted(channels: [httpChannel], httpPort: settings.port, httpsPort: nil, eventSink: eventSink)
                             }
                         case .failure(let error):
                             self.finishStopped(eventSink: nil)
@@ -100,6 +83,103 @@ final class WebDAVServerManager {
         }
     }
 
+    private func bindHTTPS(
+        settings: AppSettings,
+        settingsProvider: @escaping () -> AppSettings,
+        eventSink: @escaping (WebDAVServerEvent) -> Void,
+        group: MultiThreadedEventLoopGroup,
+        fileIO: NonBlockingFileIO,
+        sslContext: NIOSSLContext,
+        httpChannel: Channel
+    ) {
+        let httpsBootstrap = makeBootstrap(
+            group: group,
+            sslContext: sslContext,
+            settingsProvider: settingsProvider,
+            eventSink: eventSink,
+            fileIO: fileIO
+        )
+
+        httpsBootstrap.bind(host: settings.bindAddress, port: settings.httpsPort).whenComplete { result in
+            self.stateQueue.async {
+                switch result {
+                case .success(let httpsChannel):
+                    self.finishStarted(
+                        channels: [httpChannel, httpsChannel],
+                        httpPort: settings.port,
+                        httpsPort: settings.httpsPort,
+                        eventSink: eventSink
+                    )
+                case .failure(let error):
+                    self.state = .stopping([httpChannel])
+                    httpChannel.close(promise: nil)
+                    self.finishStopped(eventSink: nil)
+                    eventSink(.failed(error.localizedDescription))
+                }
+            }
+        }
+    }
+
+    private func finishStarted(channels: [Channel], httpPort: Int, httpsPort: Int?, eventSink: @escaping (WebDAVServerEvent) -> Void) {
+        addCloseHandlers(channels, eventSink: eventSink)
+        if pendingStop {
+            state = .stopping(channels)
+            closeChannels(channels)
+        } else {
+            state = .running(channels)
+            eventSink(.started(httpPort: httpPort, httpsPort: httpsPort))
+        }
+    }
+
+    private func makeBootstrap(
+        group: MultiThreadedEventLoopGroup,
+        sslContext: NIOSSLContext?,
+        settingsProvider: @escaping () -> AppSettings,
+        eventSink: @escaping (WebDAVServerEvent) -> Void,
+        fileIO: NonBlockingFileIO
+    ) -> ServerBootstrap {
+        ServerBootstrap(group: group)
+            .serverChannelOption(ChannelOptions.backlog, value: 256)
+            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+            .childChannelInitializer { channel in
+                let tlsFuture: EventLoopFuture<Void>
+                if let sslContext {
+                    tlsFuture = channel.pipeline.addHandler(NIOSSLServerHandler(context: sslContext))
+                } else {
+                    tlsFuture = channel.eventLoop.makeSucceededFuture(())
+                }
+
+                return tlsFuture.flatMap {
+                    channel.pipeline.configureHTTPServerPipeline()
+                }.flatMap {
+                    channel.pipeline.addHandler(WebDAVRequestHandler(
+                        settingsProvider: settingsProvider,
+                        eventSink: eventSink,
+                        fileIO: fileIO,
+                        lockStore: self.lockStore,
+                        usesTLS: sslContext != nil
+                    ))
+                }
+            }
+            .childChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+    }
+
+    private func addCloseHandlers(_ channels: [Channel], eventSink: @escaping (WebDAVServerEvent) -> Void) {
+        for channel in channels {
+            channel.closeFuture.whenComplete { _ in
+                self.stateQueue.async {
+                    self.finishStopped(eventSink: eventSink)
+                }
+            }
+        }
+    }
+
+    private func closeChannels(_ channels: [Channel]) {
+        for channel in channels {
+            channel.close(promise: nil)
+        }
+    }
+
     func stop(completion: (() -> Void)? = nil) {
         stateQueue.async {
             if let completion {
@@ -111,9 +191,9 @@ final class WebDAVServerManager {
                 self.runStopCompletions()
             case .starting:
                 self.pendingStop = true
-            case .running(let channel):
-                self.state = .stopping
-                channel.close(promise: nil)
+            case .running(let channels):
+                self.state = .stopping(channels)
+                self.closeChannels(channels)
             case .stopping:
                 break
             }
@@ -126,6 +206,14 @@ final class WebDAVServerManager {
             return
         }
 
+        let channelsToClose: [Channel]
+        switch state {
+        case .running(let channels), .stopping(let channels):
+            channelsToClose = channels
+        case .stopped, .starting:
+            channelsToClose = []
+        }
+
         let group = self.group
         let threadPool = self.threadPool
         self.group = nil
@@ -133,6 +221,7 @@ final class WebDAVServerManager {
         self.pendingStop = false
         self.state = .stopped
         self.lockStore.removeAll()
+        closeChannels(channelsToClose)
         eventSink?(.stopped)
 
         DispatchQueue.global(qos: .utility).async {

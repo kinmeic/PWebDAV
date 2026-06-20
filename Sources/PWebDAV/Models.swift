@@ -3,7 +3,7 @@ import Foundation
 enum ServerStatus: Equatable {
     case stopped
     case starting
-    case running(port: Int)
+    case running(httpPort: Int, httpsPort: Int?)
     case stopping
     case failed(String)
 
@@ -18,8 +18,8 @@ enum ServerStatus: Equatable {
             return L.str("status.menu.stopped")
         case .starting:
             return L.str("status.menu.starting")
-        case .running(let port):
-            return L.fmt("status.menu.running", port)
+        case .running:
+            return L.str("status.menu.running")
         case .stopping:
             return L.str("status.menu.stopping")
         case .failed(let message):
@@ -33,8 +33,17 @@ enum ServerStatus: Equatable {
             return L.str("status.display.stopped")
         case .starting:
             return L.str("status.display.starting")
-        case .running(let port):
-            return L.fmt("status.display.running", port)
+        case .running(let httpPort, let httpsPort):
+            let httpText = if httpsPort == nil {
+                L.fmt("status.display.running", String(httpPort))
+            } else {
+                L.fmt("status.display.running.http", String(httpPort))
+            }
+
+            if let httpsPort {
+                return "\(httpText)\n\(L.fmt("status.display.running.https", String(httpsPort)))"
+            }
+            return httpText
         case .stopping:
             return L.str("status.display.stopping")
         case .failed(let message):
@@ -60,6 +69,7 @@ struct AppSettings: Codable, Equatable {
     var port: Int
     var bindAddress: String
     var tlsEnabled: Bool
+    var httpsPort: Int
     var tlsCertificatePath: String
     var tlsPrivateKeyPath: String
     var uploadLimitEnabled: Bool
@@ -73,6 +83,7 @@ struct AppSettings: Codable, Equatable {
         port: 5005,
         bindAddress: "127.0.0.1",
         tlsEnabled: false,
+        httpsPort: 5006,
         tlsCertificatePath: "",
         tlsPrivateKeyPath: "",
         uploadLimitEnabled: true,
@@ -87,6 +98,7 @@ struct AppSettings: Codable, Equatable {
         port: Int,
         bindAddress: String,
         tlsEnabled: Bool,
+        httpsPort: Int,
         tlsCertificatePath: String,
         tlsPrivateKeyPath: String,
         uploadLimitEnabled: Bool,
@@ -99,6 +111,7 @@ struct AppSettings: Codable, Equatable {
         self.port = port
         self.bindAddress = bindAddress
         self.tlsEnabled = tlsEnabled
+        self.httpsPort = httpsPort
         self.tlsCertificatePath = tlsCertificatePath
         self.tlsPrivateKeyPath = tlsPrivateKeyPath
         self.uploadLimitEnabled = uploadLimitEnabled
@@ -114,6 +127,7 @@ struct AppSettings: Codable, Equatable {
         port = try container.decodeIfPresent(Int.self, forKey: .port) ?? Self.default.port
         bindAddress = try container.decodeIfPresent(String.self, forKey: .bindAddress) ?? Self.default.bindAddress
         tlsEnabled = try container.decodeIfPresent(Bool.self, forKey: .tlsEnabled) ?? Self.default.tlsEnabled
+        httpsPort = try container.decodeIfPresent(Int.self, forKey: .httpsPort) ?? Self.default.httpsPort
         tlsCertificatePath = try container.decodeIfPresent(String.self, forKey: .tlsCertificatePath) ?? Self.default.tlsCertificatePath
         tlsPrivateKeyPath = try container.decodeIfPresent(String.self, forKey: .tlsPrivateKeyPath) ?? Self.default.tlsPrivateKeyPath
         uploadLimitEnabled = try container.decodeIfPresent(Bool.self, forKey: .uploadLimitEnabled) ?? Self.default.uploadLimitEnabled

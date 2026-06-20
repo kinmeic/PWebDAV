@@ -6,7 +6,7 @@ PWebDAV is a macOS menu bar WebDAV server built with Swift, SwiftUI, and SwiftNI
 
 - Menu bar only app with no Dock icon
 - Start, stop, and restart the WebDAV service from the menu bar or settings window
-- Configurable HTTP/HTTPS port, default `5005`
+- Configurable HTTP port, default `5005`, and HTTPS port, default `5006`
 - Optional HTTPS/TLS using PEM certificate and private key files
 - Configurable upload size limit, enabled by default at 100 MB
 - Multiple shared folders mapped as virtual root directories
@@ -49,8 +49,8 @@ GitHub Actions builds release artifacts for both Apple Silicon and Intel Macs:
 Push a version tag to publish a GitHub Release:
 
 ```bash
-git tag v0.2.1
-git push origin v0.2.1
+git tag v0.2.2
+git push origin v0.2.2
 ```
 
 The release workflow can also be started manually from the Actions tab with a release tag.

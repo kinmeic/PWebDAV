@@ -33,6 +33,7 @@
 "label.enableUploadLimit" = "限制上传大小";
 "label.enabled" = "启用";
 "label.httpPort" = "HTTP 端口";
+"label.httpsPort" = "HTTPS 端口";
 "label.interfaceLanguage" = "界面语言";
 "label.localPath" = "本机路径";
 "label.newDirectoryPermission" = "新目录权限";
@@ -47,7 +48,8 @@
 
 "log.account.added" = "添加账号 %@";
 "log.server.started" = "WebDAV 服务已启动：%@";
-"log.server.starting" = "正在启动 WebDAV 服务，端口 %d";
+"log.server.starting" = "正在启动 WebDAV 服务，端口 %@";
+"log.server.startingWithTLS" = "正在启动 WebDAV 服务，HTTP 端口 %@，HTTPS 端口 %@";
 "log.server.stopped" = "WebDAV 服务已停止";
 "log.server.stopping" = "正在停止 WebDAV 服务";
 "log.settings.saveFailed" = "保存设置失败：%@";
@@ -73,12 +75,14 @@
 "section.version" = "版本";
 
 "status.display.failed" = "启动失败：%@";
-"status.display.running" = "运行中，端口 %d";
+"status.display.running" = "运行中，端口 %@";
+"status.display.running.http" = "HTTP：运行中，端口 %@";
+"status.display.running.https" = "HTTPS：运行中，端口 %@";
 "status.display.starting" = "启动中";
 "status.display.stopped" = "已停止";
 "status.display.stopping" = "停止中";
 "status.menu.failed" = "状态：错误 %@";
-"status.menu.running" = "状态：运行中 :%d";
+"status.menu.running" = "状态：运行中";
 "status.menu.starting" = "状态：启动中";
 "status.menu.stopped" = "状态：已停止";
 "status.menu.stopping" = "状态：停止中";

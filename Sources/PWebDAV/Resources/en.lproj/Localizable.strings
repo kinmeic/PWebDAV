@@ -33,6 +33,7 @@
 "label.enableUploadLimit" = "Limit Upload Size";
 "label.enabled" = "Enabled";
 "label.httpPort" = "HTTP Port";
+"label.httpsPort" = "HTTPS Port";
 "label.interfaceLanguage" = "Interface Language";
 "label.localPath" = "Local Path";
 "label.newDirectoryPermission" = "New Directory Permission";
@@ -47,7 +48,8 @@
 
 "log.account.added" = "Added account %@";
 "log.server.started" = "WebDAV server started: %@";
-"log.server.starting" = "Starting WebDAV server on port %d";
+"log.server.starting" = "Starting WebDAV server on port %@";
+"log.server.startingWithTLS" = "Starting WebDAV server on HTTP port %@ and HTTPS port %@";
 "log.server.stopped" = "WebDAV server stopped";
 "log.server.stopping" = "Stopping WebDAV server";
 "log.settings.saveFailed" = "Failed to save settings: %@";
@@ -73,12 +75,14 @@
 "section.version" = "Version";
 
 "status.display.failed" = "Failed to start: %@";
-"status.display.running" = "Running on port %d";
+"status.display.running" = "Running on port %@";
+"status.display.running.http" = "HTTP: Running on port %@";
+"status.display.running.https" = "HTTPS: Running on port %@";
 "status.display.starting" = "Starting";
 "status.display.stopped" = "Stopped";
 "status.display.stopping" = "Stopping";
 "status.menu.failed" = "Status: Error %@";
-"status.menu.running" = "Status: Running :%d";
+"status.menu.running" = "Status: Running";
 "status.menu.starting" = "Status: Starting";
 "status.menu.stopped" = "Status: Stopped";
 "status.menu.stopping" = "Status: Stopping";

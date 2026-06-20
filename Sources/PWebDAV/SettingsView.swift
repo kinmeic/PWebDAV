@@ -186,6 +186,13 @@ private struct NetworkSettingsView: View {
                 Toggle(L.str("label.enableTLS"), isOn: $model.settings.tlsEnabled)
                     .onChange(of: model.settings.tlsEnabled) { _, _ in model.saveSettings() }
 
+                LabeledContent(L.str("label.httpsPort")) {
+                    TextField("", value: $model.settings.httpsPort, formatter: NumberFormatter.integer)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 90)
+                        .onSubmit { model.saveSettings() }
+                }
+
                 LabeledContent(L.str("label.tlsCertificate")) {
                     PathPickerRow(
                         path: $model.settings.tlsCertificatePath,
@@ -846,6 +853,7 @@ private struct StatusBadge: View {
             Image(systemName: status.menuSymbolName)
                 .foregroundStyle(statusColor)
             Text(status.displayText)
+                .lineLimit(nil)
         }
     }
 

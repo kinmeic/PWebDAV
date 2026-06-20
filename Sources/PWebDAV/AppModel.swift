@@ -25,13 +25,27 @@ final class AppModel: ObservableObject {
     }
 
     var versionText: String {
-        "0.2.0"
+        "0.2.2"
     }
 
     var accessURL: String {
-        let host = settings.bindAddress == "0.0.0.0" ? "localhost" : settings.bindAddress
-        let scheme = settings.tlsEnabled ? "https" : "http"
-        return "\(scheme)://\(host):\(settings.port)"
+        settings.tlsEnabled ? httpsAccessURL : httpAccessURL
+    }
+
+    private var httpAccessURL: String {
+        "http://\(displayHost):\(settings.port)"
+    }
+
+    private var httpsAccessURL: String {
+        "https://\(displayHost):\(settings.httpsPort)"
+    }
+
+    private var accessURLs: String {
+        settings.tlsEnabled ? "\(httpAccessURL), \(httpsAccessURL)" : httpAccessURL
+    }
+
+    private var displayHost: String {
+        settings.bindAddress == "0.0.0.0" ? "localhost" : settings.bindAddress
     }
 
     func startServer() {
@@ -39,7 +53,11 @@ final class AppModel: ObservableObject {
         saveSettings()
         status = .starting
         onStatusChanged?()
-        appendLog(.info, L.fmt("log.server.starting", settings.port))
+        if settings.tlsEnabled {
+            appendLog(.info, L.fmt("log.server.startingWithTLS", String(settings.port), String(settings.httpsPort)))
+        } else {
+            appendLog(.info, L.fmt("log.server.starting", String(settings.port)))
+        }
 
         let snapshot = settings
         server.start(settings: snapshot, settingsProvider: { [runtimeSettings] in
@@ -130,6 +148,8 @@ final class AppModel: ObservableObject {
     }
 
     func saveSettings() {
+        settings.port = min(max(1, settings.port), 65535)
+        settings.httpsPort = min(max(1, settings.httpsPort), 65535)
         settings.uploadLimitMB = max(1, settings.uploadLimitMB)
         let previousLanguage = L.currentLanguage
         L.setLanguage(settings.interfaceLanguage)
@@ -217,9 +237,9 @@ final class AppModel: ObservableObject {
 
     private func handleServerEvent(_ event: WebDAVServerEvent) {
         switch event {
-        case .started(let port):
-            status = .running(port: port)
-            appendLog(.info, L.fmt("log.server.started", accessURL))
+        case .started(let httpPort, let httpsPort):
+            status = .running(httpPort: httpPort, httpsPort: httpsPort)
+            appendLog(.info, L.fmt("log.server.started", accessURLs))
         case .stopped:
             status = .stopped
             appendLog(.info, L.str("log.server.stopped"))
