@@ -59,6 +59,11 @@ enum ServerStatus: Equatable {
 struct AppSettings: Codable, Equatable {
     var port: Int
     var bindAddress: String
+    var tlsEnabled: Bool
+    var tlsCertificatePath: String
+    var tlsPrivateKeyPath: String
+    var uploadLimitEnabled: Bool
+    var uploadLimitMB: Int
     var interfaceLanguage: InterfaceLanguage
     var autoStartServer: Bool
     var shares: [ShareDirectory]
@@ -66,16 +71,38 @@ struct AppSettings: Codable, Equatable {
 
     static let `default` = AppSettings(
         port: 5005,
-        bindAddress: "0.0.0.0",
+        bindAddress: "127.0.0.1",
+        tlsEnabled: false,
+        tlsCertificatePath: "",
+        tlsPrivateKeyPath: "",
+        uploadLimitEnabled: true,
+        uploadLimitMB: 100,
         interfaceLanguage: .system,
         autoStartServer: false,
         shares: [],
         accounts: []
     )
 
-    init(port: Int, bindAddress: String, interfaceLanguage: InterfaceLanguage, autoStartServer: Bool, shares: [ShareDirectory], accounts: [Account]) {
+    init(
+        port: Int,
+        bindAddress: String,
+        tlsEnabled: Bool,
+        tlsCertificatePath: String,
+        tlsPrivateKeyPath: String,
+        uploadLimitEnabled: Bool,
+        uploadLimitMB: Int,
+        interfaceLanguage: InterfaceLanguage,
+        autoStartServer: Bool,
+        shares: [ShareDirectory],
+        accounts: [Account]
+    ) {
         self.port = port
         self.bindAddress = bindAddress
+        self.tlsEnabled = tlsEnabled
+        self.tlsCertificatePath = tlsCertificatePath
+        self.tlsPrivateKeyPath = tlsPrivateKeyPath
+        self.uploadLimitEnabled = uploadLimitEnabled
+        self.uploadLimitMB = uploadLimitMB
         self.interfaceLanguage = interfaceLanguage
         self.autoStartServer = autoStartServer
         self.shares = shares
@@ -86,6 +113,11 @@ struct AppSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         port = try container.decodeIfPresent(Int.self, forKey: .port) ?? Self.default.port
         bindAddress = try container.decodeIfPresent(String.self, forKey: .bindAddress) ?? Self.default.bindAddress
+        tlsEnabled = try container.decodeIfPresent(Bool.self, forKey: .tlsEnabled) ?? Self.default.tlsEnabled
+        tlsCertificatePath = try container.decodeIfPresent(String.self, forKey: .tlsCertificatePath) ?? Self.default.tlsCertificatePath
+        tlsPrivateKeyPath = try container.decodeIfPresent(String.self, forKey: .tlsPrivateKeyPath) ?? Self.default.tlsPrivateKeyPath
+        uploadLimitEnabled = try container.decodeIfPresent(Bool.self, forKey: .uploadLimitEnabled) ?? Self.default.uploadLimitEnabled
+        uploadLimitMB = try container.decodeIfPresent(Int.self, forKey: .uploadLimitMB) ?? Self.default.uploadLimitMB
         interfaceLanguage = try container.decodeIfPresent(InterfaceLanguage.self, forKey: .interfaceLanguage) ?? Self.default.interfaceLanguage
         autoStartServer = try container.decodeIfPresent(Bool.self, forKey: .autoStartServer) ?? Self.default.autoStartServer
         shares = try container.decodeIfPresent([ShareDirectory].self, forKey: .shares) ?? Self.default.shares
@@ -129,13 +161,25 @@ struct ShareDirectory: Codable, Identifiable, Hashable {
     var localPath: String
     var bookmarkData: Data?
     var enabled: Bool
+    var protectHiddenFiles: Bool
 
-    init(id: UUID = UUID(), virtualName: String, localPath: String, bookmarkData: Data? = nil, enabled: Bool = true) {
+    init(id: UUID = UUID(), virtualName: String, localPath: String, bookmarkData: Data? = nil, enabled: Bool = true, protectHiddenFiles: Bool = true) {
         self.id = id
         self.virtualName = virtualName
         self.localPath = localPath
         self.bookmarkData = bookmarkData
         self.enabled = enabled
+        self.protectHiddenFiles = protectHiddenFiles
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        virtualName = try container.decode(String.self, forKey: .virtualName)
+        localPath = try container.decode(String.self, forKey: .localPath)
+        bookmarkData = try container.decodeIfPresent(Data.self, forKey: .bookmarkData)
+        enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        protectHiddenFiles = try container.decodeIfPresent(Bool.self, forKey: .protectHiddenFiles) ?? true
     }
 }
 
@@ -146,6 +190,10 @@ struct Account: Codable, Identifiable, Hashable {
     var enabled: Bool
     var defaultPermission: PermissionLevel
     var directoryPermissions: [UUID: PermissionLevel]
+
+    var hasPassword: Bool {
+        !passwordDigest.isEmpty
+    }
 
     init(
         id: UUID = UUID(),

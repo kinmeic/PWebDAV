@@ -6,15 +6,18 @@ PWebDAV is a macOS menu bar WebDAV server built with Swift, SwiftUI, and SwiftNI
 
 - Menu bar only app with no Dock icon
 - Start, stop, and restart the WebDAV service from the menu bar or settings window
-- Configurable HTTP port, default `5005`
+- Configurable HTTP/HTTPS port, default `5005`
+- Optional HTTPS/TLS using PEM certificate and private key files
+- Configurable upload size limit, enabled by default at 100 MB
 - Multiple shared folders mapped as virtual root directories
 - Basic Auth accounts
 - Per-account, per-directory permissions: no access, read only, or read/write
+- Per-share hidden file protection for dot-prefixed files and directories such as `.git`, `.env`, and `.DS_Store`
 - Optional auto-start of the WebDAV service when the app launches
 - English and Simplified Chinese interface language support
 - Built-in request and service logs
 - Browser-friendly HTTP directory listing
-- WebDAV support for `OPTIONS`, `PROPFIND`, `GET`, `HEAD`, `PUT`, `DELETE`, `MKCOL`, `MOVE`, and `COPY`
+- WebDAV support for `OPTIONS`, `PROPFIND`, `GET`, `HEAD`, `PUT`, `DELETE`, `MKCOL`, `MOVE`, `COPY`, `LOCK`, and `UNLOCK`
 
 ## Development
 
@@ -46,8 +49,8 @@ GitHub Actions builds release artifacts for both Apple Silicon and Intel Macs:
 Push a version tag to publish a GitHub Release:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The release workflow can also be started manually from the Actions tab with a release tag.
@@ -61,7 +64,7 @@ Go -> Connect to Server...
 http://localhost:5005
 ```
 
-If the bind address is `0.0.0.0`, other devices on the same network can connect using your Mac's LAN IP:
+The default bind address is local-only. If the bind address is changed to `0.0.0.0`, other devices on the same network can connect using your Mac's LAN IP:
 
 ```text
 http://<your-mac-ip>:5005
@@ -71,18 +74,15 @@ http://<your-mac-ip>:5005
 
 PWebDAV requires at least one enabled account before it exposes content. If no account is enabled, HTTP/WebDAV requests are rejected.
 
-New accounts are created with the default password:
+New accounts are created disabled and without a password. Set a password before enabling the account.
 
-```text
-password
-```
-
-Change the password from the Accounts tab before using the service on a network you do not fully trust.
+PWebDAV uses Basic Auth. Plain HTTP sends credentials and file contents without encryption. Enable HTTPS/TLS with a PEM certificate and private key before exposing the service to a network you do not fully trust.
 
 ## Current Limitations
 
-- Full WebDAV `LOCK` / `UNLOCK` support is not implemented yet.
-- File upload and download currently use in-memory buffering; large-file streaming should be added before heavy production use.
+- WebDAV locks are stored in memory and are cleared when the service restarts.
+- Upload requests are limited by the configured MB setting when upload limiting is enabled.
+- Plain HTTP downloads use SwiftNIO `FileRegion`; HTTPS downloads use chunked NIO reads because `FileRegion` cannot pass through TLS.
 - Passwords are currently stored as salted SHA-256 digests in the settings file. Keychain storage is recommended for a production release.
 - The app bundle build works, but Developer ID signing and notarization still need to be added for distribution.
 
@@ -94,6 +94,6 @@ PWebDAV is released under the BSD 3-Clause License. See [LICENSE](LICENSE).
 
 1. Add Developer ID signing and notarization.
 2. Move password storage to Keychain.
-3. Replace in-memory file transfers with SwiftNIO streaming.
-4. Add minimal compatible `LOCK` / `UNLOCK` support.
-5. Add HTTPS support and a clear LAN IP display.
+3. Move TLS certificate and password material to Keychain.
+4. Add Range request support for large downloads.
+5. Add a clear LAN IP display.

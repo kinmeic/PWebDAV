@@ -80,6 +80,54 @@ private struct GeneralSettingsView: View {
                     .frame(width: 260)
                     .onChange(of: model.settings.bindAddress) { _, _ in model.saveSettings() }
                 }
+
+                if model.settings.bindAddress == "0.0.0.0" {
+                    Text(L.str("warning.allInterfacesHTTP"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Section(L.str("section.tls")) {
+                Toggle(L.str("label.enableTLS"), isOn: $model.settings.tlsEnabled)
+                    .onChange(of: model.settings.tlsEnabled) { _, _ in model.saveSettings() }
+
+                LabeledContent(L.str("label.tlsCertificate")) {
+                    PathPickerRow(
+                        path: $model.settings.tlsCertificatePath,
+                        pick: { model.pickTLSCertificate() }
+                    )
+                    .onChange(of: model.settings.tlsCertificatePath) { _, _ in model.saveSettings() }
+                }
+
+                LabeledContent(L.str("label.tlsPrivateKey")) {
+                    PathPickerRow(
+                        path: $model.settings.tlsPrivateKeyPath,
+                        pick: { model.pickTLSPrivateKey() }
+                    )
+                    .onChange(of: model.settings.tlsPrivateKeyPath) { _, _ in model.saveSettings() }
+                }
+
+                if model.settings.tlsEnabled &&
+                    (model.settings.tlsCertificatePath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                     model.settings.tlsPrivateKeyPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                    Text(L.str("hint.tlsRequiresCertificate"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Section(L.str("section.transfer")) {
+                Toggle(L.str("label.enableUploadLimit"), isOn: $model.settings.uploadLimitEnabled)
+                    .onChange(of: model.settings.uploadLimitEnabled) { _, _ in model.saveSettings() }
+
+                LabeledContent(L.str("label.uploadLimitMB")) {
+                    TextField("", value: $model.settings.uploadLimitMB, formatter: NumberFormatter.integer)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 90)
+                        .disabled(!model.settings.uploadLimitEnabled)
+                        .onSubmit { model.saveSettings() }
+                }
             }
 
             Section(L.str("section.general")) {
@@ -153,12 +201,33 @@ private struct GeneralSettingsView: View {
     }
 }
 
+private struct PathPickerRow: View {
+    @Binding var path: String
+    let pick: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("", text: $path)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 360)
+
+            Button {
+                pick()
+            } label: {
+                Image(systemName: "folder")
+            }
+            .help(L.str("action.chooseFile"))
+        }
+    }
+}
+
 private struct ShareSettingsView: View {
     @ObservedObject var model: AppModel
     @State private var draftShareID: UUID?
     @State private var draftVirtualName = ""
     @State private var draftLocalPath = ""
     @State private var draftEnabled = true
+    @State private var draftProtectHiddenFiles = true
     @State private var draftPermissions: [UUID: PermissionLevel] = [:]
 
     var body: some View {
@@ -185,6 +254,7 @@ private struct ShareSettingsView: View {
                         draftVirtualName: $draftVirtualName,
                         draftLocalPath: $draftLocalPath,
                         draftEnabled: $draftEnabled,
+                        draftProtectHiddenFiles: $draftProtectHiddenFiles,
                         draftPermissions: $draftPermissions,
                         hasChanges: shareHasChanges,
                         load: { loadShare(selectedShare) },
@@ -218,6 +288,7 @@ private struct ShareSettingsView: View {
             draftVirtualName != share.virtualName ||
             draftLocalPath != share.localPath ||
             draftEnabled != share.enabled ||
+            draftProtectHiddenFiles != share.protectHiddenFiles ||
             draftPermissions != currentPermissions
     }
 
@@ -227,6 +298,7 @@ private struct ShareSettingsView: View {
             draftVirtualName = ""
             draftLocalPath = ""
             draftEnabled = true
+            draftProtectHiddenFiles = true
             draftPermissions = [:]
             return
         }
@@ -238,6 +310,7 @@ private struct ShareSettingsView: View {
         draftVirtualName = share.virtualName
         draftLocalPath = share.localPath
         draftEnabled = share.enabled
+        draftProtectHiddenFiles = share.protectHiddenFiles
         draftPermissions = Dictionary(uniqueKeysWithValues: model.settings.accounts.map { account in
             (account.id, account.directoryPermissions[share.id] ?? account.defaultPermission)
         })
@@ -247,6 +320,7 @@ private struct ShareSettingsView: View {
         guard let id = model.selectedShareID, let index = model.settings.shares.firstIndex(where: { $0.id == id }) else { return }
         model.settings.shares[index].virtualName = draftVirtualName.trimmingCharacters(in: .whitespacesAndNewlines)
         model.settings.shares[index].enabled = draftEnabled
+        model.settings.shares[index].protectHiddenFiles = draftProtectHiddenFiles
 
         for accountIndex in model.settings.accounts.indices {
             let accountID = model.settings.accounts[accountIndex].id
@@ -265,6 +339,7 @@ private struct ShareEditor: View {
     @Binding var draftVirtualName: String
     @Binding var draftLocalPath: String
     @Binding var draftEnabled: Bool
+    @Binding var draftProtectHiddenFiles: Bool
     @Binding var draftPermissions: [UUID: PermissionLevel]
     let hasChanges: Bool
     let load: () -> Void
@@ -290,6 +365,8 @@ private struct ShareEditor: View {
                             }
 
                             Toggle(L.str("label.enabled"), isOn: $draftEnabled)
+
+                            Toggle(L.str("label.protectHiddenFiles"), isOn: $draftProtectHiddenFiles)
                         }
 
                         Section(L.str("section.accountPermissions")) {
@@ -397,7 +474,11 @@ private struct AccountSettingsView: View {
     }
 
     private var canSaveAccount: Bool {
-        !draftUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && accountHasChanges
+        guard let account = selectedAccount else { return false }
+        let hasPasswordAfterSave = account.hasPassword || !draftPassword.isEmpty
+        return !draftUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            accountHasChanges &&
+            (!draftEnabled || hasPasswordAfterSave)
     }
 
     private func loadSelectedAccount() {
@@ -462,7 +543,7 @@ private struct AccountEditor: View {
                                         .textFieldStyle(.roundedBorder)
                                         .frame(maxWidth: 320)
 
-                                    Text(L.str("hint.leaveBlankPassword"))
+                                    Text(account.hasPassword ? L.str("hint.leaveBlankPassword") : L.str("hint.passwordRequiredBeforeEnable"))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -692,13 +773,20 @@ private struct AccountRow: View {
                 Text(account.username)
                     .font(.body)
                     .lineLimit(1)
-                Text(account.enabled ? L.str("account.enabled") : L.str("account.disabled"))
+                Text(statusText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
         .padding(.vertical, 2)
+    }
+
+    private var statusText: String {
+        if !account.hasPassword {
+            return L.str("account.passwordNotSet")
+        }
+        return account.enabled ? L.str("account.enabled") : L.str("account.disabled")
     }
 }
 

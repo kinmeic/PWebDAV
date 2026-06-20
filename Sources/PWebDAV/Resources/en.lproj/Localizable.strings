@@ -1,5 +1,6 @@
 "action.add" = "Add";
 "action.clear" = "Clear";
+"action.chooseFile" = "Choose File";
 "action.delete" = "Delete";
 "action.quit" = "Quit";
 "action.restart" = "Restart";
@@ -11,6 +12,7 @@
 
 "account.disabled" = "Disabled";
 "account.enabled" = "Enabled";
+"account.passwordNotSet" = "Password not set";
 
 "bind.allInterfaces" = "All Interfaces";
 "bind.localOnly" = "Local Only";
@@ -20,18 +22,26 @@
 
 "hint.leaveBlankPassword" = "Leave blank to keep the current password.";
 "hint.noAccountsAccessDenied" = "WebDAV access is denied when no account is enabled.";
+"hint.passwordRequiredBeforeEnable" = "Set a password before enabling this account.";
+"hint.tlsRequiresCertificate" = "TLS requires both a PEM certificate chain and a PEM private key.";
 
 "label.accessURL" = "Access URL";
 "label.autoStartServer" = "Start WebDAV service when app launches";
 "label.autoScroll" = "Auto-scroll";
 "label.bindAddress" = "Bind Address";
+"label.enableTLS" = "Enable HTTPS / TLS";
+"label.enableUploadLimit" = "Limit Upload Size";
 "label.enabled" = "Enabled";
 "label.httpPort" = "HTTP Port";
 "label.interfaceLanguage" = "Interface Language";
 "label.localPath" = "Local Path";
 "label.newDirectoryPermission" = "New Directory Permission";
 "label.newPassword" = "New Password";
+"label.protectHiddenFiles" = "Protect Hidden Files";
 "label.status" = "Status";
+"label.tlsCertificate" = "Certificate PEM";
+"label.tlsPrivateKey" = "Private Key PEM";
+"label.uploadLimitMB" = "Upload Limit (MB)";
 "label.username" = "Username";
 "label.virtualName" = "Virtual Directory Name";
 
@@ -58,6 +68,8 @@
 "section.general" = "General";
 "section.port" = "Port Settings";
 "section.runtime" = "Runtime";
+"section.tls" = "HTTPS / TLS";
+"section.transfer" = "Transfer";
 "section.version" = "Version";
 
 "status.display.failed" = "Failed to start: %@";
@@ -80,5 +92,7 @@
 "web.modified" = "Modified";
 "web.name" = "Name";
 "web.size" = "Size";
+
+"warning.allInterfacesHTTP" = "HTTP and Basic Auth are not encrypted. Binding to all interfaces can expose credentials and files to your local network.";
 
 "window.settings.title" = "PWebDAV Settings";

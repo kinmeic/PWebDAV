@@ -25,16 +25,17 @@ final class AppModel: ObservableObject {
     }
 
     var versionText: String {
-        "0.1.0"
+        "0.2.0"
     }
 
     var accessURL: String {
         let host = settings.bindAddress == "0.0.0.0" ? "localhost" : settings.bindAddress
-        return "http://\(host):\(settings.port)"
+        let scheme = settings.tlsEnabled ? "https" : "http"
+        return "\(scheme)://\(host):\(settings.port)"
     }
 
     func startServer() {
-        guard !status.isRunning else { return }
+        guard canStartServer else { return }
         saveSettings()
         status = .starting
         onStatusChanged?()
@@ -50,7 +51,21 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private var canStartServer: Bool {
+        if status == .stopped { return true }
+        if case .failed = status { return true }
+        return false
+    }
+
     func stopServer() {
+        stopServer {
+            self.status = .stopped
+            self.appendLog(.info, L.str("log.server.stopped"))
+            self.onStatusChanged?()
+        }
+    }
+
+    private func stopServer(completion: @escaping () -> Void) {
         guard status != .stopped else { return }
         status = .stopping
         onStatusChanged?()
@@ -58,25 +73,64 @@ final class AppModel: ObservableObject {
 
         server.stop { [weak self] in
             Task { @MainActor in
-                self?.status = .stopped
-                self?.appendLog(.info, L.str("log.server.stopped"))
-                self?.onStatusChanged?()
+                guard self != nil else { return }
+                completion()
             }
         }
     }
 
     func restartServer() {
-        if status.isRunning {
-            stopServer()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        if status.isRunning || status == .starting {
+            stopServer {
+                self.status = .stopped
+                self.appendLog(.info, L.str("log.server.stopped"))
+                self.onStatusChanged?()
                 self.startServer()
+            }
+        } else if status == .stopping {
+            server.stop { [weak self] in
+                Task { @MainActor in
+                    self?.status = .stopped
+                    self?.onStatusChanged?()
+                    self?.startServer()
+                }
             }
         } else {
             startServer()
         }
     }
 
+    func pickTLSCertificate() {
+        if let path = pickFilePath(allowedExtensions: ["pem", "crt", "cer"]) {
+            settings.tlsCertificatePath = path
+            saveSettings()
+        }
+    }
+
+    func pickTLSPrivateKey() {
+        if let path = pickFilePath(allowedExtensions: ["pem", "key"]) {
+            settings.tlsPrivateKeyPath = path
+            saveSettings()
+        }
+    }
+
+    private func pickFilePath(allowedExtensions: [String]) -> String? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.allowsOtherFileTypes = true
+
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        if !allowedExtensions.isEmpty, !allowedExtensions.contains(url.pathExtension.lowercased()) {
+            return url.path
+        }
+        return url.path
+    }
+
     func saveSettings() {
+        settings.uploadLimitMB = max(1, settings.uploadLimitMB)
         let previousLanguage = L.currentLanguage
         L.setLanguage(settings.interfaceLanguage)
         if previousLanguage != settings.interfaceLanguage {
@@ -129,7 +183,7 @@ final class AppModel: ObservableObject {
             username = "\(base)\(suffix)"
         }
 
-        let account = Account(username: username, passwordDigest: PasswordHasher.digest(username: username, password: "password"))
+        let account = Account(username: username, passwordDigest: "", enabled: false)
         settings.accounts.append(account)
         selectedAccountID = account.id
         saveSettings()

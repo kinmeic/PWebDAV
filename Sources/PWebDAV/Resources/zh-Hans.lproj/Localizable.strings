@@ -1,5 +1,6 @@
 "action.add" = "添加";
 "action.clear" = "清空";
+"action.chooseFile" = "选择文件";
 "action.delete" = "删除";
 "action.quit" = "退出";
 "action.restart" = "重启";
@@ -11,6 +12,7 @@
 
 "account.disabled" = "已停用";
 "account.enabled" = "已启用";
+"account.passwordNotSet" = "未设置密码";
 
 "bind.allInterfaces" = "所有网络接口";
 "bind.localOnly" = "仅本机";
@@ -20,18 +22,26 @@
 
 "hint.leaveBlankPassword" = "留空则不修改";
 "hint.noAccountsAccessDenied" = "没有启用账号时，WebDAV 访问会被拒绝。";
+"hint.passwordRequiredBeforeEnable" = "设置密码后才能启用此账号。";
+"hint.tlsRequiresCertificate" = "TLS 需要 PEM 格式的证书链和私钥。";
 
 "label.accessURL" = "访问地址";
 "label.autoStartServer" = "应用启动时自动启动 WebDAV 服务";
 "label.autoScroll" = "自动滚动";
 "label.bindAddress" = "绑定地址";
+"label.enableTLS" = "启用 HTTPS / TLS";
+"label.enableUploadLimit" = "限制上传大小";
 "label.enabled" = "启用";
 "label.httpPort" = "HTTP 端口";
 "label.interfaceLanguage" = "界面语言";
 "label.localPath" = "本机路径";
 "label.newDirectoryPermission" = "新目录权限";
 "label.newPassword" = "新密码";
+"label.protectHiddenFiles" = "隐藏文件保护";
 "label.status" = "状态";
+"label.tlsCertificate" = "证书 PEM";
+"label.tlsPrivateKey" = "私钥 PEM";
+"label.uploadLimitMB" = "上传限制 (MB)";
 "label.username" = "用户名";
 "label.virtualName" = "虚拟目录名";
 
@@ -58,6 +68,8 @@
 "section.general" = "常规";
 "section.port" = "端口设置";
 "section.runtime" = "运行状态";
+"section.tls" = "HTTPS / TLS";
+"section.transfer" = "传输";
 "section.version" = "版本";
 
 "status.display.failed" = "启动失败：%@";
@@ -80,5 +92,7 @@
 "web.modified" = "修改时间";
 "web.name" = "名称";
 "web.size" = "大小";
+
+"warning.allInterfacesHTTP" = "HTTP 与 Basic Auth 未加密。绑定所有网络接口会把凭据和文件暴露到局域网。";
 
 "window.settings.title" = "PWebDAV 设置";
