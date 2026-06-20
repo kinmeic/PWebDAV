@@ -1368,7 +1368,7 @@ private struct AuthContext {
             account = enabledAccounts.first { account in
                 account.hasPassword &&
                 PasswordHasher.constantTimeEquals(account.username, credentials.username) &&
-                PasswordHasher.constantTimeEquals(account.passwordDigest, PasswordHasher.digest(username: credentials.username, password: credentials.password))
+                PasswordHasher.verify(password: credentials.password, digest: account.passwordDigest)
             }
         } else {
             account = nil

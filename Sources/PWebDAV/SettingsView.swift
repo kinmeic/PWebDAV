@@ -438,10 +438,17 @@ private struct AccountSettingsView: View {
     @State private var draftEnabled = true
     @State private var draftDefaultPermission: PermissionLevel = .readOnly
     @State private var draftPassword = ""
+    @State private var usernameEditableAccountID: UUID?
 
     var body: some View {
         HSplitView {
-            SidebarList(addAction: { model.addAccount() }, removeAction: {
+            SidebarList(addAction: {
+                usernameEditableAccountID = model.addAccount()
+                loadSelectedAccount()
+            }, removeAction: {
+                if model.selectedAccountID == usernameEditableAccountID {
+                    usernameEditableAccountID = nil
+                }
                 model.removeSelectedAccount()
                 loadSelectedAccount()
             }, removeDisabled: model.selectedAccountID == nil) {
@@ -463,6 +470,7 @@ private struct AccountSettingsView: View {
                         draftEnabled: $draftEnabled,
                         draftDefaultPermission: $draftDefaultPermission,
                         draftPassword: $draftPassword,
+                        usernameEditable: usernameEditableAccountID == selectedAccount.id,
                         hasChanges: accountHasChanges,
                         canSave: canSaveAccount,
                         load: { loadAccount(selectedAccount) },
@@ -490,7 +498,7 @@ private struct AccountSettingsView: View {
     private var accountHasChanges: Bool {
         guard let account = selectedAccount else { return false }
         return draftAccountID != account.id ||
-            draftUsername != account.username ||
+            (usernameEditableAccountID == account.id && draftUsername != account.username) ||
             draftEnabled != account.enabled ||
             draftDefaultPermission != account.defaultPermission ||
             !draftPassword.isEmpty
@@ -498,8 +506,10 @@ private struct AccountSettingsView: View {
 
     private var canSaveAccount: Bool {
         guard let account = selectedAccount else { return false }
+        let username = draftUsername.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasPasswordAfterSave = account.hasPassword || !draftPassword.isEmpty
-        return !draftUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        return !username.isEmpty &&
+            isUniqueUsername(username, for: account.id) &&
             accountHasChanges &&
             (!draftEnabled || hasPasswordAfterSave)
     }
@@ -527,13 +537,23 @@ private struct AccountSettingsView: View {
     private func saveAccount() {
         guard let id = model.selectedAccountID, let index = model.settings.accounts.firstIndex(where: { $0.id == id }) else { return }
         let username = draftUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        if usernameEditableAccountID == id {
+            model.settings.accounts[index].username = username
+            usernameEditableAccountID = nil
+        }
         model.settings.accounts[index].enabled = draftEnabled
         model.settings.accounts[index].defaultPermission = draftDefaultPermission
         if !draftPassword.isEmpty {
-            model.settings.accounts[index].passwordDigest = PasswordHasher.digest(username: username, password: draftPassword)
+            model.settings.accounts[index].passwordDigest = PasswordHasher.digest(password: draftPassword)
         }
         model.saveSettings()
         loadSelectedAccount()
+    }
+
+    private func isUniqueUsername(_ username: String, for accountID: UUID) -> Bool {
+        !model.settings.accounts.contains { account in
+            account.id != accountID && account.username == username
+        }
     }
 }
 
@@ -543,6 +563,7 @@ private struct AccountEditor: View {
     @Binding var draftEnabled: Bool
     @Binding var draftDefaultPermission: PermissionLevel
     @Binding var draftPassword: String
+    let usernameEditable: Bool
     let hasChanges: Bool
     let canSave: Bool
     let load: () -> Void
@@ -555,9 +576,15 @@ private struct AccountEditor: View {
                     Form {
                         Section(L.str("section.account")) {
                             LabeledContent(L.str("label.username")) {
-                                Text(draftUsername)
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
+                                if usernameEditable {
+                                    TextField("", text: $draftUsername)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(maxWidth: 320)
+                                } else {
+                                    Text(draftUsername)
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
                             }
 
                             LabeledContent(L.str("label.newPassword")) {

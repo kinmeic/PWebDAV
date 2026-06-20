@@ -49,8 +49,8 @@ GitHub Actions builds release artifacts for both Apple Silicon and Intel Macs:
 Push a version tag to publish a GitHub Release:
 
 ```bash
-git tag v0.2.2
-git push origin v0.2.2
+git tag v0.2.3
+git push origin v0.2.3
 ```
 
 The release workflow can also be started manually from the Actions tab with a release tag.
@@ -83,7 +83,7 @@ PWebDAV uses Basic Auth. Plain HTTP sends credentials and file contents without 
 - WebDAV locks are stored in memory and are cleared when the service restarts.
 - Upload requests are limited by the configured MB setting when upload limiting is enabled.
 - Plain HTTP downloads use SwiftNIO `FileRegion`; HTTPS downloads use chunked NIO reads because `FileRegion` cannot pass through TLS.
-- Passwords are currently stored as salted SHA-256 digests in the settings file. Keychain storage is recommended for a production release.
+- Passwords are stored as PBKDF2-HMAC-SHA256 digests with per-account random salts in a user-only settings file. Keychain storage is recommended for a production release.
 - The app bundle build works, but Developer ID signing and notarization still need to be added for distribution.
 
 ## License

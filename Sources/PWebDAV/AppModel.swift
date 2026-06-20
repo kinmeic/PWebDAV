@@ -25,7 +25,7 @@ final class AppModel: ObservableObject {
     }
 
     var versionText: String {
-        "0.2.2"
+        "0.2.3"
     }
 
     var accessURL: String {
@@ -193,7 +193,8 @@ final class AppModel: ObservableObject {
         saveSettings()
     }
 
-    func addAccount() {
+    @discardableResult
+    func addAccount() -> UUID {
         let base = "user"
         var username = base
         var suffix = 1
@@ -208,6 +209,7 @@ final class AppModel: ObservableObject {
         selectedAccountID = account.id
         saveSettings()
         appendLog(.info, L.fmt("log.account.added", username))
+        return account.id
     }
 
     func removeSelectedAccount() {
@@ -219,8 +221,7 @@ final class AppModel: ObservableObject {
 
     func updatePassword(for accountID: UUID, password: String) {
         guard let index = settings.accounts.firstIndex(where: { $0.id == accountID }) else { return }
-        let username = settings.accounts[index].username
-        settings.accounts[index].passwordDigest = PasswordHasher.digest(username: username, password: password)
+        settings.accounts[index].passwordDigest = PasswordHasher.digest(password: password)
         saveSettings()
     }
 

@@ -206,7 +206,7 @@ struct Account: Codable, Identifiable, Hashable {
     var directoryPermissions: [UUID: PermissionLevel]
 
     var hasPassword: Bool {
-        !passwordDigest.isEmpty
+        PasswordHasher.isSupportedDigest(passwordDigest)
     }
 
     init(
